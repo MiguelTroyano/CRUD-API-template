@@ -14,3 +14,9 @@ def crear_tablas():
     import models       #importante para que pueda crear las tablas
 
     SQLModel.metadata.create_all(engine)                    # (se ejecuta solo si no ha sido creada)
+
+"""
+Se define la llamada a create_all en una función ya que si se ejecutase antes que la creación de las clases
+en models.py no crearía nada.
+Al llamarse desde el main forzando importar models antes, nos aseguramos de que se hayan creado.
+"""

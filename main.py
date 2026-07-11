@@ -20,7 +20,7 @@ app.include_router(objetos.router)
 En este caso, como vamos a usar sólo HTML + JS (prescindimos de React), podemos alojar el front-end y el back-end
 en el 'mismo sitio'. Si no, tendríamos que emplear CORS (Cross-Origin Resource Sharing) para poder comunicar ambos ends.
 """
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")        #al renderizar el HTML, se pasa por la API para acceder a los CSS y el JS.
 
 @app.get("/")
 def home():
