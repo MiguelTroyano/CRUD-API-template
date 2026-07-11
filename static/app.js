@@ -2,7 +2,7 @@
 async function extraerError(respuesta) {
     try {
         const error = await respuesta.json()
-        if (typeof respuesta.detail === "string") return respuesta.detail;
+        if (typeof error.detail === "string") return error.detail;
         if (Array.isArray(error.detail)) return error.detail.map(e => e.msg).join(". ");    // FASTAPI lanza errores 422 en forma de arrays.
         return "Error inesperado";
     } catch {
@@ -109,26 +109,28 @@ async function registrar() {
 
 function cerrarSesion() {
     localStorage.removeItem("token");           // no se invalida el token, sólo se "olvida"
+    document.getElementById('lista-objetos').innerHTML = '';   // limpiar la lista al salir. Coherencia estado - almacenamiento.
     mostrarLogin();
 }
 
 
 // --- operaciones CRUD ---
 async function cargarObjetos() {
+    // Se vacía la lista de objetos antes de hacer ninguna llamada. Evitamos mostrar estados de lista desactualizados.
+    const lista = document.getElementById('lista-objetos');     
+    lista.innerHTML = '';       //vacía la lista antes de repintarla.
+    //La práctica de revaciar la lista y cargar todos los objetos cada vez que hay una modificación es ineficiente y por eso se usa React
+
     // usamos fetch sin más argumentos, llamando así al método GET más simple de la API
     // Capturamos desde aquí el error 401 en caso de que ocurra. Esto evita UnhandledRejection que puede ser problematica para Node.js
     let respuesta;
     try {
-        const respuesta = await fetchAuth('/objetos');
+        respuesta = await fetchAuth('/objetos');
     } catch {
         return;     // no hacemos nada, fetchAuth ya llama a cerrarSesion
     }
 
     const objetos = await respuesta.json();
-
-    const lista = document.getElementById('lista-objetos');     
-    lista.innerHTML = '';       //vacía la lista antes de repintarla.
-    //La práctica de revaciar la lista y cargar todos los objetos cada vez que hay una modificación es ineficiente y por eso se usa React
 
     // por cada objeto, se crea:
     //  un bloque <li> (li) 
