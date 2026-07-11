@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">          <!--Fundamental para que el HTML se considere "seguro" cibernéticamente-->
+    <title>Índice</title>           <!--Texto que aparece en la pestaña del navegador-->
+    
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/static/app.js" defer></script>
+</head>
+<body>
+    <!--PANTALLA LOGIN-->
+    <div id="pantalla-login">
+        <h1>Entrar</h1>
+        <input id="login-username" placeholder="Usuario">
+        <input id="login-password" placeholder="Contraseña" type="password">
+        <button onclick="login()">Iniciar sesión</button>
+        <button onclick="registrar()">Registrarse</button>
+        <p id="login-error" class="error"></p>
+    </div>
+
+    <!--PANTALLA PRINCIPAL APP-->
+    <div id="pantalla-app" style="display: none;">                                      <!--Ponemos display none para que no se muestre de primeras-->
+        <div class="barra-superior">
+            <h1>Gestor básico</h1>
+            <button onclick="cerrarSesion()">Cerrar sesión</button>
+        </div>
+
+        <div>
+            <input id="nuevo-objeto" placeholder="¿Cómo se llama tu nuevo objeto?">     <!--Añadir un id permite luego referenciar a este objeto al escribir en JS y recuperar así su contenido-->
+            <button onclick="crearObjeto()">Añadir</button>                             <!--Esta función se define posteriormente en el documento-->
+        </div>
+
+        <ul id="lista-objetos"></ul>        <!--lista que es rellenada con la ejecución del script JS-->
+    </div>
+</body>
+</html>

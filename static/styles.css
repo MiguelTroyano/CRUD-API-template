@@ -1,0 +1,8 @@
+body { font-family: sans-serif; max-width: 500px; margin: 40px auto; }
+li { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.done { text-decoration: line-through; color: gray; }
+button { cursor: pointer; }
+input { display: block; margin: 6px 0; padding: 6px; }
+#nuevo-objeto { width: 300px; }
+.error { color: red; }
+.barra-superior { display: flex; justify-content: space-between; align-items: center; }
