@@ -1,4 +1,4 @@
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import SQLModel, create_engine, Session
 
 #Creación de la base de datos
 engine = create_engine("sqlite:///proyecto.db")         # crea o referencia si ya ha sido creada
@@ -19,4 +19,15 @@ def crear_tablas():
 Se define la llamada a create_all en una función ya que si se ejecutase antes que la creación de las clases
 en models.py no crearía nada.
 Al llamarse desde el main forzando importar models antes, nos aseguramos de que se hayan creado.
+"""
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+"""
+Inyectar la sesión de la BBDD como dependencia permite, además de clarificar el código, usar la misma sesión usada
+en la otra dependencia (que ha obtenido el usuario) para la propia función. Esto, además de ser más eficiente, permite
+usar relaciones y monitorear el usuario por el ORM de SQLModel.
 """

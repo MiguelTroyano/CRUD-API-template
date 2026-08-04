@@ -7,7 +7,7 @@ from pwdlib import PasswordHash
 from sqlmodel import Session
 
 from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
-from database import engine
+from database import get_session
 from models import Usuario
 
 security = HTTPBearer()                                 # FastAPI espera un token en los headers.
@@ -32,7 +32,8 @@ la contraseña original.
 
 #Función de autorización que se ejecutará antes que todos los endpoints en los que esté como argumento esta función
 def dependencia_autorizacion(
-        credenciales: HTTPAuthorizationCredentials = Depends(security)
+        credenciales: HTTPAuthorizationCredentials = Depends(security),
+        session: Session = Depends(get_session)
 ) -> Usuario:
     #Obtener un token por headers
     token = credenciales.credentials
@@ -52,15 +53,14 @@ def dependencia_autorizacion(
         raise no_autorizado
 
     #Obtener los datos del usuario
-    with Session(engine) as session:
-        usuario = session.get(Usuario, int(user_id))        # se usa .get(Tabla, id) para buscar una fila por clave primaria
+    usuario = session.get(Usuario, int(user_id))        # se usa .get(Tabla, id) para buscar una fila por clave primaria
 
-        if usuario is None:
-            raise no_autorizado     # usuario no registrado
-        return usuario
+    if usuario is None:
+        raise no_autorizado     # usuario no registrado
+    return usuario
 
 
 def crear_token(usuario_id: int):
-        expira = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        payload = {"sub": str(usuario_id), "exp": expira}
-        return jwt.encode(payload= payload, key= SECRET_KEY, algorithm= ALGORITHM)
+    expira = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {"sub": str(usuario_id), "exp": expira}
+    return jwt.encode(payload= payload, key= SECRET_KEY, algorithm= ALGORITHM)

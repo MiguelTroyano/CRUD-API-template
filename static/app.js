@@ -82,6 +82,10 @@ async function login() {
     // Una alternativa mucho más segura es usar una cookie HTTPOnly que JS no puede leer.
 
     document.getElementById("login-error").textContent = "";
+    
+    // limpiar los campos del login
+    document.getElementById("login-username").value = "";
+    document.getElementById("login-password").value = "";
     mostrarApp();
 }
 
