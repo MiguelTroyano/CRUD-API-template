@@ -4,13 +4,13 @@ from sqlmodel import Session, select
 from auth import password_hash, crear_token
 from database import get_session
 from models import Usuario
-from schemas import UsuarioCrear
+from schemas import UsuarioCrear, UsuarioLeer
 
 router = APIRouter(tags=["usuarios"])       # tags: agrupa estos endpoints en /docs
 # Sin prefix: /register y /login no comparten raíz de URL.
 
 #Ruta /register. Siempre se accede por un método POST, para crear un nuevo usuario.
-@router.post("/register")
+@router.post("/register", response_model=UsuarioLeer)
 def crear_usuario(datos: UsuarioCrear,
                   session: Session = Depends(get_session)):
     
@@ -32,7 +32,7 @@ def crear_usuario(datos: UsuarioCrear,
     session.commit()
     session.refresh(usuario)
 
-    return {"id": usuario.id, "username": usuario.username}         #Esto podría ser una clase UsuarioLeer
+    return usuario          # Al haber declarado un response model, únicamente devolverá los campos del usuario que se hayan definido en éste (además de documentación extra en /docs)
     
 
 #Ruta /login. Método POST: se crea un token de acceso si los datos de acceso son válidos.

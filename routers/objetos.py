@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from auth import dependencia_autorizacion
 from database import get_session
 from models import Usuario, Objeto
-from schemas import ObjetoCrear
+from schemas import ObjetoCrear, ObjetoLeer
 
 router = APIRouter(prefix="/objetos", tags=["objetos"])
 # prefix: todas las rutas de este router cuelgan de /objetos,
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/objetos", tags=["objetos"])
 # tags: agrupación en /docs
 
 #Ruta /objetos: post para crear 1, get para obtenerlos todos (en forma de lista de JSON)
-@router.post("")
+@router.post("", response_model=ObjetoLeer)
 def crear_objeto(datos: ObjetoCrear,
                  session: Session = Depends(get_session),
                  usuario: Usuario = Depends(dependencia_autorizacion)):
@@ -27,7 +27,7 @@ def crear_objeto(datos: ObjetoCrear,
     session.refresh(objeto)
     return objeto
 
-@router.get("")
+@router.get("", response_model=list[ObjetoLeer])
 def listar_objetos(
     session: Session = Depends(get_session),
     usuario: Usuario = Depends(dependencia_autorizacion)
@@ -40,7 +40,7 @@ listar de forma más clara y concisa las filas de clave foránea-primaria común
 
 
 #Obtener 1 solo objeto: ruta /objetos/{id}. PUT para modificar, DELETE para eliminar.
-@router.put("/{id_objeto}")
+@router.put("/{id_objeto}", response_model=ObjetoLeer)
 def actualizar_done(id_objeto: int, done: bool,        #ideal: obtener los argumentos de todas las funciones como JSON o por argumentos sueltos, no variar.
                     session: Session = Depends(get_session),
                     usuario: Usuario = Depends(dependencia_autorizacion)):

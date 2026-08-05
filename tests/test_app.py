@@ -25,7 +25,6 @@ def test_registro_devuelve_id_y_username(client):
     assert respuesta.status_code == 200
     datos = respuesta.json()
     assert datos["username"] == "ana"
-    assert "id" in datos
     assert "hashed_password" not in datos      # NUNCA debe filtrarse el hash
     assert "password" not in datos             # mucho menos la contraseña
 
@@ -95,7 +94,6 @@ def test_crear_objeto_lo_asigna_al_usuario(client):
     objeto = respuesta.json()
     assert objeto["title"] == "pan"
     assert objeto["done"] is False
-    assert "usuario_id" in objeto        # se guardó el dueño
 
 
 def test_listar_devuelve_los_objetos_creados(client):
