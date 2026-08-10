@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from auth import dependencia_autorizacion
 from database import get_session
 from models import Usuario, Objeto
-from schemas import ObjetoCrear, ObjetoLeer
+from schemas import ObjetoCrear, ObjetoLeer, ObjetoActualizar
 
 router = APIRouter(prefix="/objetos", tags=["objetos"])
 # prefix: todas las rutas de este router cuelgan de /objetos,
@@ -40,26 +40,31 @@ listar de forma más clara y concisa las filas de clave foránea-primaria común
 
 
 #Obtener 1 solo objeto: ruta /objetos/{id}. PUT para modificar, DELETE para eliminar.
+
+"""
+El método PUT en API RESTs, convencionalmente, sirve para actualizar un objeto entero, es decir,
+colocar un objeto nuevo donde antes había otro. En este caso, sólo cambiamos 1 atributo del objeto,
+por lo que el método PATCH sería más correcto. Sin embargo, ambos métodos valen, y como PUT es más 
+polivalente, usaremos PUT.
+"""
 @router.put("/{id_objeto}", response_model=ObjetoLeer)
-def actualizar_done(id_objeto: int, done: bool,        #ideal: obtener los argumentos de todas las funciones como JSON o por argumentos sueltos, no variar.
+def actualizar_objeto(id_objeto: int, 
+                    datos: ObjetoActualizar,
                     session: Session = Depends(get_session),
                     usuario: Usuario = Depends(dependencia_autorizacion)):
+    """
+    Modifica los campos especificados de un objeto.
+    """
     objeto = session.get(Objeto, id_objeto)         #se usa .get(Tabla, id) para buscar una fila por clave primaria
 
     #Manejo de errores, necesario antes de modificar
     if not objeto or objeto.usuario_id != usuario.id:
         raise HTTPException(status_code=404, detail=F"Objeto de id {id_objeto} no encontrado")      #se lanza no encontrado si el objeto existe pero es de otro usuario.
-    
-    objeto.done = done
 
-    #session.add(objeto)
-    """
-    Se puede poner la anterior línea, pero no es necesario. 
-    Una instancia de Objeto puede estar en estado
-    TRANSITORIO si se ha creado de la nada y no está conectado a la BBDD (todavía)
-    PERSISTENTE si se ha obtenido directamente de la BBDD. En este caso el ORM SQLModel monitorea los cambios
-        que se hagan a ese objeto en memoria y se trasladan a la BBDD en el próximo commit.
-    """
+    # Comportamiento de PATCH: Filtrar por argumentos especificados (en PUT se especifican todos)
+    datos = datos.model_dump(exclude_unset=True)        # transforma el JSON en diccionario, eliminando los campos no especificados
+    for campo, valor in datos.items():
+        setattr(objeto, campo, valor)           # (tenemos el campo en forma de string, asi que lo conveniente es usar setattr)
     
     session.commit()
     session.refresh(objeto)

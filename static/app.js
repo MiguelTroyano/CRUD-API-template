@@ -188,10 +188,11 @@ async function crearObjeto() {
 
 async function cambiarEstado(id, done) {
     // Al clickar algun checkbox, se llama al metodo PUT de la API.
-    //  como en python habíamos declarado el estado done como un argumento suelto, lo introducimos en la URL, no en el body
     try {
-        await fetchAuth('/objetos/' + id + '?done=' + done, {
-            method: "PUT"
+        await fetchAuth('/objetos/' + id, {
+            method: "PUT",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ done: done })
         });
     } catch {
         return;

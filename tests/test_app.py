@@ -112,7 +112,7 @@ def test_marcar_done(client):
     headers = registrar_y_headers(client)
     creado = client.post("/objetos", json={"title": "tarea"}, headers=headers).json()
 
-    respuesta = client.put(f"/objetos/{creado['id']}?done=true", headers=headers)
+    respuesta = client.put(f"/objetos/{creado['id']}", json={"done": True}, headers=headers)
 
     assert respuesta.status_code == 200
     assert respuesta.json()["done"] is True
