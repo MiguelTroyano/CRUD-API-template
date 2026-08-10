@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from sqlmodel import Session, select
 
 from auth import dependencia_autorizacion
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/objetos", tags=["objetos"])
 # tags: agrupación en /docs
 
 #Ruta /objetos: post para crear 1, get para obtenerlos todos (en forma de lista de JSON)
-@router.post("", response_model=ObjetoLeer)
+@router.post("", response_model=ObjetoLeer, status_code=status.HTTP_201_CREATED)        # equivalente a hacer status_code=201 (legibilidad)
 def crear_objeto(datos: ObjetoCrear,
                  session: Session = Depends(get_session),
                  usuario: Usuario = Depends(dependencia_autorizacion)):
@@ -26,6 +26,11 @@ def crear_objeto(datos: ObjetoCrear,
     session.commit()
     session.refresh(objeto)
     return objeto
+
+"""
+Especificar el código de estado 201 (y 204 para eliminar) ayuda a cualquier persona/programa que haga peticiones 
+a la API a entender lo que acaba de hacer.
+"""
 
 @router.get("", response_model=list[ObjetoLeer])
 def listar_objetos(
@@ -71,7 +76,7 @@ def actualizar_objeto(id_objeto: int,
     return objeto
 
 
-@router.delete("/{id_objeto}")
+@router.delete("/{id_objeto}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_objeto(id_objeto: int,
                     session: Session = Depends(get_session),
                     usuario: Usuario = Depends(dependencia_autorizacion)):
@@ -83,4 +88,4 @@ def eliminar_objeto(id_objeto: int,
     session.delete(objeto)
     session.commit()
     
-    return {"ok": True}
+    return None         # un 204 no lleva cuerpo

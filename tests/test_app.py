@@ -90,7 +90,7 @@ def test_crear_objeto_lo_asigna_al_usuario(client):
 
     respuesta = client.post("/objetos", json={"title": "pan"}, headers=headers)
 
-    assert respuesta.status_code == 200
+    assert respuesta.status_code == 201
     objeto = respuesta.json()
     assert objeto["title"] == "pan"
     assert objeto["done"] is False
@@ -124,7 +124,7 @@ def test_borrar_objeto(client):
 
     respuesta = client.delete(f"/objetos/{creado['id']}", headers=headers)
 
-    assert respuesta.status_code == 200
+    assert respuesta.status_code == 204
     # y ya no aparece al listar
     assert client.get("/objetos", headers=headers).json() == []
 
