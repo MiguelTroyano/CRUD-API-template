@@ -4,14 +4,14 @@ from sqlmodel import Session, select
 from auth import password_hash, crear_token
 from database import get_session
 from models import Usuario
-from schemas import UsuarioCrear, UsuarioLeer
+from schemas import UsuarioRegistrar, UsuarioLogin, UsuarioLeer
 
 router = APIRouter(tags=["usuarios"])       # tags: agrupa estos endpoints en /docs
 # Sin prefix: /register y /login no comparten raíz de URL.
 
 #Ruta /register. Siempre se accede por un método POST, para crear un nuevo usuario.
 @router.post("/register", response_model=UsuarioLeer)
-def crear_usuario(datos: UsuarioCrear,
+def crear_usuario(datos: UsuarioRegistrar,
                   session: Session = Depends(get_session)):
     
     #Comprobar que no exista un usuario con el mismo nombre
@@ -37,7 +37,7 @@ def crear_usuario(datos: UsuarioCrear,
 
 #Ruta /login. Método POST: se crea un token de acceso si los datos de acceso son válidos.
 @router.post("/login")
-def acceder(datos: UsuarioCrear,
+def acceder(datos: UsuarioLogin,
             session: Session = Depends(get_session)):           #los atributos introducidos por el usuario para registrarse y acceder son los mismos
     
     #Comprobar que existe el usuario que está intentando iniciar sesión, y obtener su contraseña hasheada

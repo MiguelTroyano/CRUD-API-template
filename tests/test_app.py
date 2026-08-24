@@ -15,6 +15,8 @@ Patrón que sigue cada test (AAA):
 Si un 'assert' es falso, el test FALLA y pytest te muestra qué esperabas vs qué salió.
 """
 from conftest import registrar_y_headers        # no hace falta importar las fixtures
+from sqlmodel import select
+from models import Usuario
 
 
 # ---------- Registro y login ----------
@@ -41,6 +43,17 @@ def test_registro_username_duplicado_falla(client):
     Incluir un mensaje en las aserciones no es una buena práctica ya que es algo que, a la que cambie por
     cualquier convencionalidad, requiere un cambio tedioso en los tests también.
     """
+
+
+def test_registro_password_corta_falla(client, session):
+    respuesta = client.post("/register", json={"username": "ana", "password": "cinco"})
+
+    assert respuesta.status_code == 422
+    assert session.exec(select(Usuario).where(Usuario.username == "ana")).first() is None
+
+def test_registro_username_corto_falla(client):
+    respuesta = client.post("/register", json={"username": "ab", "password": "12345678"})
+    assert respuesta.status_code == 422
 
 
 def test_login_correcto_devuelve_token(client):
@@ -70,6 +83,28 @@ def test_login_usuario_inexistente_da_401(client):
     assert respuesta.json()["detail"] == "Usuario o contraseña incorrectos"
 
 
+def test_username_se_normaliza_a_minusculas(client):
+    # registro con mayúsculas...
+    client.post("/register", json={"username": "Ana", "password": "12345678"})
+    # ...y login escribiéndolo distinto: debe encontrar la cuenta
+    respuesta = client.post("/login", json={"username": "ANA", "password": "12345678"})
+    assert respuesta.status_code == 200
+    assert "access_token" in respuesta.json()
+
+
+def test_username_duplicado_ignorando_mayusculas(client):
+    client.post("/register", json={"username": "ana", "password": "12345678"})
+    # intentar registrar "Ana" debe chocar con la unicidad (ambos son "ana")
+    respuesta = client.post("/register", json={"username": "Ana", "password": "otra1234"})
+    assert respuesta.status_code == 400
+
+
+def test_login_password_corta_da_401_no_422(client):
+    client.post("/register", json={"username": "ana", "password": "correcta123"})
+    # intento de login con contraseña corta y equivocada
+    respuesta = client.post("/login", json={"username": "ana", "password": "no"})
+    assert respuesta.status_code == 401       # no 422: el login no aplica reglas de longitud
+
 # ---------- Autorización ----------
 
 def test_listar_objetos_sin_token_da_401(client):
@@ -96,6 +131,25 @@ def test_crear_objeto_lo_asigna_al_usuario(client):
     assert objeto["done"] is False
 
 
+def test_crear_objeto_titulo_vacio_falla(client):
+    headers = registrar_y_headers(client)
+    respuesta = client.post("/objetos", json={"title": ""}, headers=headers)
+    assert respuesta.status_code == 422
+
+
+def test_crear_objeto_solo_espacios_falla(client):
+    headers = registrar_y_headers(client)
+    respuesta = client.post("/objetos", json={"title": "   "}, headers=headers)
+    assert respuesta.status_code == 422
+
+
+def test_crear_objeto_recorta_espacios(client):
+    headers = registrar_y_headers(client)
+    respuesta = client.post("/objetos", json={"title": "  con espacios  "}, headers=headers)
+    assert respuesta.status_code == 201
+    assert respuesta.json()["title"] == "con espacios"      # guardado sin los espacios de los bordes
+
+
 def test_listar_devuelve_los_objetos_creados(client):
     headers = registrar_y_headers(client)
     client.post("/objetos", json={"title": "obj 1"}, headers=headers)
@@ -116,6 +170,17 @@ def test_marcar_done(client):
 
     assert respuesta.status_code == 200
     assert respuesta.json()["done"] is True
+
+
+def test_actualizar_titulo_demasiado_largo_falla(client):
+    headers = registrar_y_headers(client)
+    creado = client.post("/objetos", json={"title": "obj"}, headers=headers).json()
+
+    respuesta = client.put(f"/objetos/{creado['id']}",
+                           json={"title": "x" * 200},
+                           headers=headers)
+
+    assert respuesta.status_code == 422
 
 
 def test_borrar_objeto(client):
