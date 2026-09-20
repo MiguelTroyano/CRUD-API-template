@@ -1,0 +1,4 @@
+[JWT]
+secret_key = USE_PYTHON_secrets.token_hex(32)_TO_GENERATE_A_TOKEN
+algorithm = HS256
+exp_mins = 30
