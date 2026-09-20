@@ -1,33 +1,31 @@
-Uso de FastAPI con SQLModel.
+Using FastAPI with SQLModel.
 
-Se ha intentado seguir una forma esquemática para formar el back-end, de modo que pueda servir como plantilla para cualquier otro proyecto. 
-El front-end, por el contrario, está muy direccionado a mostrar el contenido de la BBDD de una forma más especializada.
+The back-end follows a structured approach designed to serve as a template for other projects.
+The front-end, in contrast, is specifically tailored to display database content in a specialized manner.
 
-Uso de clases limitada. Uso, por el contrario, de URLs formateadas, argumentos sueltos, y personalización de outputs e inputs manuales en cada función.
+User management using pwdlib: registration and login. Hashing: Argon2. Authentication tokens: JWT.
 
-Gestión de usuarios con pwdlib: registro, login. Hashing: Argon2. Tokens de autenticación: JWT.
+Token protection is highly vulnerable (stored in JS `localStorage`). Future update: use of HttpOnly cookies to handle tokens.
 
-Protección de tokens muy vulnerable (almacenados en localStorage de JS).
-
-No se usa ningún sistema CORS.
+No CORS system is implemented.
 
 ---
 
 
-**Archivos:**
+**Files:**
 
-`database.py`: creación del motor de la BBDD y el generador de sesiones.
+`database.py`: creation of the database engine and session generator.
 
-`models.py`: clases que definen los modelos base y los modelos tabla de los usuarios y los objetos.
+`models.py`: classes defining base models and database table models for users and objects.
 
-`schemas.py`: clases que definen los modelos que obtienen los endpoints para sus funciones.
+`schemas.py`: classes defining the models used by endpoints for their operations.
 
-`auth.py`: funciones de verificación y creación de tokens.
+`auth.py`: functions for token verification and creation.
 
-`config.py`: obtención de parámetros de configuración.
+`config.py`: retrieval of configuration parameters.
 
-`routers/objetos.py`: endpoints de operaciones CRUD sobre objetos.
+`routers/objetos.py`: endpoints for CRUD operations on objects.
 
-`routers/usuarios.py`: endpoints de registro y log-in.
+`routers/usuarios.py`: endpoints for registration and login.
 
-`static`: carpeta con todo el front-end
+`static`: folder containing the entire front-end.
