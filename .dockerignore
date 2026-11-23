@@ -1,9 +1,9 @@
-# Secrets and local data must never end up in the image
+# Secretos y datos locales: no deben acabar dentro de la imagen
 config.ini
 .env
 *.db
 
-# Development files
+# Entorno de desarrollo
 .git
 .vscode
 .pytest_cache
