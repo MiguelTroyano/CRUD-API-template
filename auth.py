@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from database import get_session
-from models import Usuario
+from models import User
 
 security = HTTPBearer()                                 # FastAPI espera un token en los headers.
 
@@ -23,7 +23,7 @@ Usa algoritmos lentos de hashing para impedir ataques de fuerza bruta.
 
 """
 Importante que la API no acepte directamente la clase que define las tablas de la BBDD.
-Esto permite a los usuarios controlar cosas que no interesa que controlen (como el id de su usuario o sus objetos, 
+Esto permite a los usuarios controlar cosas que no interesa que controlen (como el id de su usuario o sus objetos,
 o el hash de su contraseña), para evitar errores inesperados o posibles ataques.
 Si el atacante conoce el output del hash de tu contraseña, podría mandarla como tal. Ahora forzamos a que conozca
 la contraseña original.
@@ -31,15 +31,15 @@ la contraseña original.
 
 
 #Función de autorización que se ejecutará antes que todos los endpoints en los que esté como argumento esta función
-def dependencia_autorizacion(
-        credenciales: HTTPAuthorizationCredentials = Depends(security),
+def get_current_user(
+        credentials: HTTPAuthorizationCredentials = Depends(security),
         session: Session = Depends(get_session)
-) -> Usuario:
+) -> User:
     #Obtener un token por headers
-    token = credenciales.credentials
+    token = credentials.credentials
 
     #Error único para token sin propietario o propietario no registrado, firma o fecha de caducidad inválidas.
-    no_autorizado = HTTPException(status_code= 401, detail= "Acceso denegado")
+    unauthorized = HTTPException(status_code= 401, detail= "Access denied")
 
     #Obtener el id del usuario propietario del token
     try:
@@ -47,20 +47,20 @@ def dependencia_autorizacion(
 
         user_id = payload.get("sub")
         if user_id is None:
-            raise no_autorizado         # token sin propietario
-        
+            raise unauthorized         # token sin propietario
+
     except jwt.InvalidTokenError:
-        raise no_autorizado
+        raise unauthorized
 
     #Obtener los datos del usuario
-    usuario = session.get(Usuario, int(user_id))        # se usa .get(Tabla, id) para buscar una fila por clave primaria
+    user = session.get(User, int(user_id))        # se usa .get(Tabla, id) para buscar una fila por clave primaria
 
-    if usuario is None:
-        raise no_autorizado     # usuario no registrado
-    return usuario
+    if user is None:
+        raise unauthorized     # usuario no registrado
+    return user
 
 
-def crear_token(usuario_id: int):
-    expira = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": str(usuario_id), "exp": expira}
+def create_token(user_id: int):
+    expires = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {"sub": str(user_id), "exp": expires}
     return jwt.encode(payload= payload, key= SECRET_KEY, algorithm= ALGORITHM)

@@ -2,17 +2,17 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from database import crear_tablas
-from routers import usuarios, objetos
+from database import create_tables
+from routers import users, items
 
 # Creación de la base de datos
-crear_tablas()
+create_tables()
 
 #Creación de la API
 app = FastAPI()
 
-app.include_router(usuarios.router)
-app.include_router(objetos.router)
+app.include_router(users.router)
+app.include_router(items.router)
 
 
 #FRONT-END

@@ -1,29 +1,29 @@
-from models import UsuarioBase, ObjetoBase, normalizar_username
+from models import UserBase, ItemBase, normalize_username
 from sqlmodel import SQLModel, Field
 from pydantic import field_validator
 
-class ObjetoCrear(ObjetoBase):
+class ItemCreate(ItemBase):
     """
     Clase con la información que aporta el usuario sobre un nuevo objeto.
     """
-    pass                                                #(mismos atributos que el ObjetoBase (title))
+    pass                                                #(mismos atributos que el ItemBase (title))
 
 
-class ObjetoLeer(ObjetoBase):
+class ItemRead(ItemBase):
     """
     Clase con la información que devolverá la API sobre los objetos tratados
     """
     id: int         # necesario para poder enviar desde el front-end peticiones de operaciones PUT y DELETE
     done: bool      # necesario para la operación PUT
     """
-    El usuario_id no es necesario para ninguna operación (lo deduce el back-end con el token que envía la petición). 
+    El user_id no es necesario para ninguna operación (lo deduce el back-end con el token que envía la petición).
     Entonces, aunque no suponga ninguna amenaza incluirlo, al no ser necesario, es mejor no hacerlo.
-    Igualmente, si añadiésemos otra operación en la que fuese necesario que el front-end conociese la identidad del 
+    Igualmente, si añadiésemos otra operación en la que fuese necesario que el front-end conociese la identidad del
     dueño del objeto de antemano, tendríamos que incluirlo.
     """
 
 
-class ObjetoActualizar(SQLModel):
+class ItemUpdate(SQLModel):
     """
     Clase con la posible información que puede proveer un usuario para modificar un objeto.
     """
@@ -36,7 +36,7 @@ class ObjetoActualizar(SQLModel):
 
     @field_validator("title", mode="before")      # mode="before": ejecuta los cambios antes de pasar por el resto de restricciones en Field
     @classmethod
-    def limpiar_title(cls, v):
+    def strip_title(cls, v):
         """
         En caso de que se haya especificado un string, le quita los espacios del principio y el final.
         """
@@ -45,34 +45,34 @@ class ObjetoActualizar(SQLModel):
         return v
 
 
-class UsuarioRegistrar(UsuarioBase):
+class UserRegister(UserBase):
     """
     Clase con la información que aporta el usuario sobre su nuevo usuario.
     """
     password: str = Field(min_length=8, max_length=128)         # cualquier POST que se haga con una contraseña de <8 letras lanzará 422 (código de error para formato de peticiones erróneos).
 
 
-class UsuarioLogin(SQLModel):
+class UserLogin(SQLModel):
     username: str = Field(min_length=1)
     password: str = Field(min_length=1)
     """
-    A la hora de iniciar sesión, la única restricción que se debe imponer a la contraseña introducida es aquella que 
+    A la hora de iniciar sesión, la única restricción que se debe imponer a la contraseña introducida es aquella que
     SIEMPRE se va a imponer a la recién creada.
     Quizá, el mínimo número de letras de las contraseñas en el futuro pasa a ser de 8 a 12. Entonces, Login y Registro
     no pueden compartir la misma restricción, ya que el Login quedaría deprecado para aquellos usuarios que se registraron
     bajo las anteriores restricciones.
 
-    Además, que salte el mismo error al iniciar sesión que al registrarse, implica que a quién esté inciando sesión se le 
+    Además, que salte el mismo error al iniciar sesión que al registrarse, implica que a quién esté inciando sesión se le
     podría dar información relevante únicamente en el momento de crear (restricciones de creación).
     """
 
     @field_validator("username", mode="before")
     @classmethod
-    def _normalizar(cls, v):
-        return normalizar_username(v)
+    def _normalize(cls, v):
+        return normalize_username(v)
 
 
-class UsuarioLeer(UsuarioBase):
+class UserRead(UserBase):
     """
     Clase con la información que devolverá la API sobre los usuarios tratados
     """

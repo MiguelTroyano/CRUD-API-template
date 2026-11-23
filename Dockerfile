@@ -3,7 +3,7 @@ FROM python:3.11-slim
 # Sin .pyc y con logs sin buffer (se ven al momento con `docker logs`)
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    DATABASE_URL=sqlite:////app/data/proyecto.db
+    DATABASE_URL=sqlite:////app/data/app.db
 
 # Crea la carpeta app en el contenedor
 WORKDIR /app

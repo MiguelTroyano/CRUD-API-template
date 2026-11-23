@@ -14,221 +14,221 @@ Patrón que sigue cada test (AAA):
   - Assert (afirmar): comprobar que el resultado es el esperado
 Si un 'assert' es falso, el test FALLA y pytest te muestra qué esperabas vs qué salió.
 """
-from conftest import registrar_y_headers        # no hace falta importar las fixtures
+from conftest import register_and_get_headers        # no hace falta importar las fixtures
 from sqlmodel import select
-from models import Usuario
+from models import User
 
 
 # ---------- Registro y login ----------
 
-def test_registro_devuelve_id_y_username(client):
-    respuesta = client.post("/register", json={"username": "ana", "password": "12345678"})
+def test_register_returns_username(client):
+    response = client.post("/register", json={"username": "ana", "password": "12345678"})
 
-    assert respuesta.status_code == 200
-    datos = respuesta.json()
-    assert datos["username"] == "ana"
-    assert "hashed_password" not in datos      # NUNCA debe filtrarse el hash
-    assert "password" not in datos             # mucho menos la contraseña
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == "ana"
+    assert "hashed_password" not in data      # NUNCA debe filtrarse el hash
+    assert "password" not in data             # mucho menos la contraseña
 
 
-def test_registro_username_duplicado_falla(client):
+def test_register_duplicate_username_fails(client):
     client.post("/register", json={"username": "ana", "password": "12345678"})
 
     # segundo registro con el mismo nombre
-    respuesta = client.post("/register", json={"username": "ana", "password": "otra1234"})
+    response = client.post("/register", json={"username": "ana", "password": "other123"})
 
-    assert respuesta.status_code == 400
-    assert respuesta.json()["detail"] == "Nombre de usuario ya en uso"
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Username already taken"
     """
     Incluir un mensaje en las aserciones no es una buena práctica ya que es algo que, a la que cambie por
     cualquier convencionalidad, requiere un cambio tedioso en los tests también.
     """
 
 
-def test_registro_password_corta_falla(client, session):
-    respuesta = client.post("/register", json={"username": "ana", "password": "cinco"})
+def test_register_short_password_fails(client, session):
+    response = client.post("/register", json={"username": "ana", "password": "five"})
 
-    assert respuesta.status_code == 422
-    assert session.exec(select(Usuario).where(Usuario.username == "ana")).first() is None
+    assert response.status_code == 422
+    assert session.exec(select(User).where(User.username == "ana")).first() is None
 
-def test_registro_username_corto_falla(client):
-    respuesta = client.post("/register", json={"username": "ab", "password": "12345678"})
-    assert respuesta.status_code == 422
+def test_register_short_username_fails(client):
+    response = client.post("/register", json={"username": "ab", "password": "12345678"})
+    assert response.status_code == 422
 
 
-def test_login_correcto_devuelve_token(client):
+def test_login_success_returns_token(client):
     client.post("/register", json={"username": "ana", "password": "12345678"})
 
-    respuesta = client.post("/login", json={"username": "ana", "password": "12345678"})
+    response = client.post("/login", json={"username": "ana", "password": "12345678"})
 
-    assert respuesta.status_code == 200
-    assert "access_token" in respuesta.json()
+    assert response.status_code == 200
+    assert "access_token" in response.json()
 
 
-def test_login_password_incorrecta_da_401(client):
+def test_login_wrong_password_returns_401(client):
     client.post("/register", json={"username": "ana", "password": "12345678"})
 
-    respuesta = client.post("/login", json={"username": "ana", "password": "MALA1234"})
+    response = client.post("/login", json={"username": "ana", "password": "WRONG123"})
 
-    assert respuesta.status_code == 401
-    assert "access_token" not in respuesta.json()
-    assert respuesta.json()["detail"] == "Usuario o contraseña incorrectos"
-
-
-def test_login_usuario_inexistente_da_401(client):
-    respuesta = client.post("/login", json={"username": "fantasma", "password": "12345678"})
-
-    assert respuesta.status_code == 401
-    assert "access_token" not in respuesta.json()
-    assert respuesta.json()["detail"] == "Usuario o contraseña incorrectos"
+    assert response.status_code == 401
+    assert "access_token" not in response.json()
+    assert response.json()["detail"] == "Incorrect username or password"
 
 
-def test_username_se_normaliza_a_minusculas(client):
+def test_login_unknown_user_returns_401(client):
+    response = client.post("/login", json={"username": "ghost", "password": "12345678"})
+
+    assert response.status_code == 401
+    assert "access_token" not in response.json()
+    assert response.json()["detail"] == "Incorrect username or password"
+
+
+def test_username_is_normalized_to_lowercase(client):
     # registro con mayúsculas...
     client.post("/register", json={"username": "Ana", "password": "12345678"})
     # ...y login escribiéndolo distinto: debe encontrar la cuenta
-    respuesta = client.post("/login", json={"username": "ANA", "password": "12345678"})
-    assert respuesta.status_code == 200
-    assert "access_token" in respuesta.json()
+    response = client.post("/login", json={"username": "ANA", "password": "12345678"})
+    assert response.status_code == 200
+    assert "access_token" in response.json()
 
 
-def test_username_duplicado_ignorando_mayusculas(client):
+def test_duplicate_username_is_case_insensitive(client):
     client.post("/register", json={"username": "ana", "password": "12345678"})
     # intentar registrar "Ana" debe chocar con la unicidad (ambos son "ana")
-    respuesta = client.post("/register", json={"username": "Ana", "password": "otra1234"})
-    assert respuesta.status_code == 400
+    response = client.post("/register", json={"username": "Ana", "password": "other123"})
+    assert response.status_code == 400
 
 
-def test_login_password_corta_da_401_no_422(client):
-    client.post("/register", json={"username": "ana", "password": "correcta123"})
+def test_login_short_password_returns_401_not_422(client):
+    client.post("/register", json={"username": "ana", "password": "correct123"})
     # intento de login con contraseña corta y equivocada
-    respuesta = client.post("/login", json={"username": "ana", "password": "no"})
-    assert respuesta.status_code == 401       # no 422: el login no aplica reglas de longitud
+    response = client.post("/login", json={"username": "ana", "password": "no"})
+    assert response.status_code == 401       # no 422: el login no aplica reglas de longitud
 
 # ---------- Autorización ----------
 
-def test_listar_objetos_sin_token_da_401(client):
-    respuesta = client.get("/objetos")
+def test_list_items_without_token_returns_401(client):
+    response = client.get("/items")
 
-    assert respuesta.status_code == 401
+    assert response.status_code == 401
     """
-    Al no haber token, el error ocurre en la propia llamada a la dependencia de autorización, que tiene una 
+    Al no haber token, el error ocurre en la propia llamada a la dependencia de autorización, que tiene una
     dependencia de seguridad que falla al no tener 'Authorization' en sus headers.
     (No se lanza el error personalizado)
     """
 
 
-# ---------- CRUD de objetos ----------
+# ---------- CRUD de items ----------
 
-def test_crear_objeto_lo_asigna_al_usuario(client):
-    headers = registrar_y_headers(client)
+def test_create_item_assigns_it_to_user(client):
+    headers = register_and_get_headers(client)
 
-    respuesta = client.post("/objetos", json={"title": "pan"}, headers=headers)
+    response = client.post("/items", json={"title": "bread"}, headers=headers)
 
-    assert respuesta.status_code == 201
-    objeto = respuesta.json()
-    assert objeto["title"] == "pan"
-    assert objeto["done"] is False
-
-
-def test_crear_objeto_titulo_vacio_falla(client):
-    headers = registrar_y_headers(client)
-    respuesta = client.post("/objetos", json={"title": ""}, headers=headers)
-    assert respuesta.status_code == 422
+    assert response.status_code == 201
+    item = response.json()
+    assert item["title"] == "bread"
+    assert item["done"] is False
 
 
-def test_crear_objeto_solo_espacios_falla(client):
-    headers = registrar_y_headers(client)
-    respuesta = client.post("/objetos", json={"title": "   "}, headers=headers)
-    assert respuesta.status_code == 422
+def test_create_item_empty_title_fails(client):
+    headers = register_and_get_headers(client)
+    response = client.post("/items", json={"title": ""}, headers=headers)
+    assert response.status_code == 422
 
 
-def test_crear_objeto_recorta_espacios(client):
-    headers = registrar_y_headers(client)
-    respuesta = client.post("/objetos", json={"title": "  con espacios  "}, headers=headers)
-    assert respuesta.status_code == 201
-    assert respuesta.json()["title"] == "con espacios"      # guardado sin los espacios de los bordes
+def test_create_item_whitespace_only_fails(client):
+    headers = register_and_get_headers(client)
+    response = client.post("/items", json={"title": "   "}, headers=headers)
+    assert response.status_code == 422
 
 
-def test_listar_devuelve_los_objetos_creados(client):
-    headers = registrar_y_headers(client)
-    client.post("/objetos", json={"title": "obj 1"}, headers=headers)
-    client.post("/objetos", json={"title": "obj 2"}, headers=headers)
-
-    respuesta = client.get("/objetos", headers=headers)
-
-    assert respuesta.status_code == 200
-    objs = [(o["title"], o["done"]) for o in respuesta.json()]
-    assert objs == [("obj 1", False), ("obj 2", False)]
+def test_create_item_strips_whitespace(client):
+    headers = register_and_get_headers(client)
+    response = client.post("/items", json={"title": "  with spaces  "}, headers=headers)
+    assert response.status_code == 201
+    assert response.json()["title"] == "with spaces"      # guardado sin los espacios de los bordes
 
 
-def test_marcar_done(client):
-    headers = registrar_y_headers(client)
-    creado = client.post("/objetos", json={"title": "tarea"}, headers=headers).json()
+def test_list_returns_created_items(client):
+    headers = register_and_get_headers(client)
+    client.post("/items", json={"title": "item 1"}, headers=headers)
+    client.post("/items", json={"title": "item 2"}, headers=headers)
 
-    respuesta = client.put(f"/objetos/{creado['id']}", json={"done": True}, headers=headers)
+    response = client.get("/items", headers=headers)
 
-    assert respuesta.status_code == 200
-    assert respuesta.json()["done"] is True
-
-
-def test_actualizar_titulo_demasiado_largo_falla(client):
-    headers = registrar_y_headers(client)
-    creado = client.post("/objetos", json={"title": "obj"}, headers=headers).json()
-
-    respuesta = client.put(f"/objetos/{creado['id']}",
-                           json={"title": "x" * 200},
-                           headers=headers)
-
-    assert respuesta.status_code == 422
+    assert response.status_code == 200
+    items = [(i["title"], i["done"]) for i in response.json()]
+    assert items == [("item 1", False), ("item 2", False)]
 
 
-def test_borrar_objeto(client):
-    headers = registrar_y_headers(client)
-    creado = client.post("/objetos", json={"title": "tarea"}, headers=headers).json()
+def test_mark_done(client):
+    headers = register_and_get_headers(client)
+    created = client.post("/items", json={"title": "task"}, headers=headers).json()
 
-    respuesta = client.delete(f"/objetos/{creado['id']}", headers=headers)
+    response = client.put(f"/items/{created['id']}", json={"done": True}, headers=headers)
 
-    assert respuesta.status_code == 204
+    assert response.status_code == 200
+    assert response.json()["done"] is True
+
+
+def test_update_title_too_long_fails(client):
+    headers = register_and_get_headers(client)
+    created = client.post("/items", json={"title": "item"}, headers=headers).json()
+
+    response = client.put(f"/items/{created['id']}",
+                          json={"title": "x" * 200},
+                          headers=headers)
+
+    assert response.status_code == 422
+
+
+def test_delete_item(client):
+    headers = register_and_get_headers(client)
+    created = client.post("/items", json={"title": "task"}, headers=headers).json()
+
+    response = client.delete(f"/items/{created['id']}", headers=headers)
+
+    assert response.status_code == 204
     # y ya no aparece al listar
-    assert client.get("/objetos", headers=headers).json() == []
+    assert client.get("/items", headers=headers).json() == []
 
 
-def test_borrar_objeto_inexistente(client):
-    headers = registrar_y_headers(client)
+def test_delete_nonexistent_item(client):
+    headers = register_and_get_headers(client)
 
-    respuesta = client.delete(f"/objetos/999", headers=headers)
+    response = client.delete(f"/items/999", headers=headers)
 
-    assert respuesta.status_code == 404
-    assert "no existe" in respuesta.json()["detail"].lower()
+    assert response.status_code == 404
+    assert "does not exist" in response.json()["detail"].lower()
 
 
 # ---------- Seguridad: aislamiento entre usuarios ----------
 
-def test_un_usuario_no_ve_objetos_de_otro(client):
-    headers_ana = registrar_y_headers(client, "ana", "12345678")
-    headers_bob = registrar_y_headers(client, "bob", "12345678")
+def test_user_cannot_see_other_users_items(client):
+    headers_ana = register_and_get_headers(client, "ana", "12345678")
+    headers_bob = register_and_get_headers(client, "bob", "12345678")
 
     # ana crea un objeto
-    client.post("/objetos", json={"title": "secreto de ana"}, headers=headers_ana)
+    client.post("/items", json={"title": "ana's secret"}, headers=headers_ana)
 
     # bob lista los suyos: no debe ver nada de ana
-    respuesta = client.get("/objetos", headers=headers_bob)
+    response = client.get("/items", headers=headers_bob)
 
-    assert respuesta.json() == []
+    assert response.json() == []
 
 
-def test_un_usuario_no_puede_borrar_objeto_de_otro(client):
-    headers_ana = registrar_y_headers(client, "ana", "12345678")
-    headers_bob = registrar_y_headers(client, "bob", "12345678")
+def test_user_cannot_delete_other_users_item(client):
+    headers_ana = register_and_get_headers(client, "ana", "12345678")
+    headers_bob = register_and_get_headers(client, "bob", "12345678")
 
-    objeto_ana = client.post("/objetos", json={"title": "de ana"}, headers=headers_ana).json()
+    ana_item = client.post("/items", json={"title": "ana's item"}, headers=headers_ana).json()
 
     # bob intenta borrar el objeto de ana
-    respuesta = client.delete(f"/objetos/{objeto_ana['id']}", headers=headers_bob)
+    response = client.delete(f"/items/{ana_item['id']}", headers=headers_bob)
 
-    assert respuesta.status_code == 404
-    assert "no existe" in respuesta.json()["detail"].lower()
+    assert response.status_code == 404
+    assert "does not exist" in response.json()["detail"].lower()
 
     # y el objeto de ana sigue vivo
-    assert len(client.get("/objetos", headers=headers_ana).json()) == 1
+    assert len(client.get("/items", headers=headers_ana).json()) == 1

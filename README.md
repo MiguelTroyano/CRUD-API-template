@@ -35,7 +35,7 @@ Classes are kept to a minimum on purpose: the code relies on formatted URLs, pla
 
 - **Users**: registration and login with [pwdlib](https://github.com/frankie567/pwdlib). Passwords are stored as **Argon2** hashes.
 - **Authentication**: **JWT** tokens with configurable expiration.
-- **Object CRUD**: each user can only see and modify their own objects.
+- **Item CRUD**: each user can only see and modify their own items.
 - **Validation**: input constraints with Pydantic and specific HTTP status codes.
 - **Built-in front-end**: served by the API itself, so no CORS is needed.
 - **Docker**: ready-to-run image, with the database stored in a persistent volume.
@@ -85,7 +85,7 @@ Each value is read from an **environment variable** first. If it is not set, it 
 | `JWT_SECRET_KEY` | `secret_key` | Key used to sign tokens | `c9d1...e8a` |
 | `JWT_ALGORITHM` | `algorithm` | Signing algorithm | `HS256` |
 | `JWT_EXP_MINS` | `exp_mins` | Token lifetime in minutes | `30` |
-| `DATABASE_URL` | — | Database connection string | `sqlite:///proyecto.db` |
+| `DATABASE_URL` | — | Database connection string | `sqlite:///app.db` |
 
 `config.ini.example` contains a template for `config.ini`.
 
@@ -100,10 +100,10 @@ Interactive documentation (Swagger) is generated automatically at **http://local
 | `GET` | `/` | Front-end | — |
 | `POST` | `/register` | Register a user | — |
 | `POST` | `/login` | Log in and get a token | — |
-| `GET` | `/objetos` | List the user's objects | 🔒 |
-| `POST` | `/objetos` | Create an object | 🔒 |
-| `PUT` | `/objetos/{id}` | Update title and/or status | 🔒 |
-| `DELETE` | `/objetos/{id}` | Delete an object | 🔒 |
+| `GET` | `/items` | List the user's items | 🔒 |
+| `POST` | `/items` | Create an item | 🔒 |
+| `PUT` | `/items/{id}` | Update title and/or status | 🔒 |
+| `DELETE` | `/items/{id}` | Delete an item | 🔒 |
 
 🔒 Requires the `Authorization: Bearer <token>` header.
 
@@ -120,16 +120,16 @@ curl -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
   -d '{"username": "jose", "password": "12345678"}'
 
-# 3. Create an object with the token you received
-curl -X POST http://localhost:8000/objetos \
+# 3. Create an item with the token you received
+curl -X POST http://localhost:8000/items \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"title": "My first object"}'
+  -d '{"title": "My first item"}'
 ```
 
 ## Tests
 
-Tests use an **in-memory** database, so they never touch `proyecto.db`.
+Tests use an **in-memory** database, so they never touch `app.db`.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -143,12 +143,12 @@ pytest
 ├── main.py              # Entry point: creates the app, registers routers and serves the front-end
 ├── config.py            # Configuration loading (environment variables / config.ini)
 ├── database.py          # Database engine and session generator
-├── models.py            # Base models and table models (users and objects)
+├── models.py            # Base models and table models (users and items)
 ├── schemas.py           # Endpoint input and output models
 ├── auth.py              # JWT token creation and verification
 ├── routers/
-│   ├── usuarios.py      # Registration and login
-│   └── objetos.py       # CRUD operations on objects
+│   ├── users.py         # Registration and login
+│   └── items.py         # CRUD operations on items
 ├── static/              # Front-end (HTML, CSS and JS)
 ├── tests/               # pytest tests
 ├── Dockerfile

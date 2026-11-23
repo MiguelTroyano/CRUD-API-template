@@ -3,7 +3,7 @@ import os
 from sqlmodel import SQLModel, create_engine, Session
 
 #Creación de la base de datos
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///proyecto.db")      # en Docker se apunta a un volumen para que los datos persistan
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///app.db")      # en Docker se apunta a un volumen para que los datos persistan
 engine = create_engine(DATABASE_URL)         # crea o referencia si ya ha sido creada
 
 
@@ -13,7 +13,7 @@ cambiar tipo de columna, cambiar claves primarias o foráneas, etc.) una vez cre
 de datos entera es escribir una MIGRACIÓN (Alembic para SQLAlchemy).
 """
 
-def crear_tablas():
+def create_tables():
     import models       #importante para que pueda crear las tablas
 
     SQLModel.metadata.create_all(engine)                    # (se ejecuta solo si no ha sido creada)
