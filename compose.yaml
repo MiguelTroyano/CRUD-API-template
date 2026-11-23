@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Define JWT_SECRET_KEY en el archivo .env}
+      JWT_ALGORITHM: HS256
+      JWT_EXP_MINS: 30
+    volumes:
+      - datos:/app/data
+    restart: unless-stopped
+
+volumes:
+  datos:
