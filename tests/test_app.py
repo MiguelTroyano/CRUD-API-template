@@ -1,4 +1,20 @@
-from conftest import register_and_get_headers
+"""
+App tests.
+
+pytest automatically discovers:
+  - files whose names start with 'test_'
+  - the functions inside them whose names start with 'test_'
+
+Each test function receives the fixtures it names in its arguments
+(here 'client'), and pytest takes care of building them before running the test.
+
+Pattern followed by every test (AAA):
+  - Arrange: set up the starting data
+  - Act: perform the action being tested
+  - Assert: check that the result is the expected one
+If an 'assert' is false, the test FAILS and pytest shows you what you expected vs what you got.
+"""
+from conftest import register_and_get_headers        # no need to import the fixtures
 from sqlmodel import select
 from models import User
 
@@ -11,17 +27,22 @@ def test_register_returns_username(client):
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == "ana"
-    assert "hashed_password" not in data
-    assert "password" not in data
+    assert "hashed_password" not in data      # the hash must NEVER leak
+    assert "password" not in data             # let alone the password
 
 
 def test_register_duplicate_username_fails(client):
     client.post("/register", json={"username": "ana", "password": "12345678"})
 
+    # second registration with the same name
     response = client.post("/register", json={"username": "ana", "password": "other123"})
 
     assert response.status_code == 400
     assert response.json()["detail"] == "Username already taken"
+    """
+    Asserting on a message isn't good practice, since as soon as the message changes for whatever
+    reason, the tests need a tedious update too.
+    """
 
 
 def test_register_short_password_fails(client, session):
@@ -63,7 +84,9 @@ def test_login_unknown_user_returns_401(client):
 
 
 def test_username_is_normalized_to_lowercase(client):
+    # register with uppercase letters...
     client.post("/register", json={"username": "Ana", "password": "12345678"})
+    # ...and log in writing it differently: it must find the account
     response = client.post("/login", json={"username": "ANA", "password": "12345678"})
     assert response.status_code == 200
     assert "access_token" in response.json()
@@ -71,14 +94,16 @@ def test_username_is_normalized_to_lowercase(client):
 
 def test_duplicate_username_is_case_insensitive(client):
     client.post("/register", json={"username": "ana", "password": "12345678"})
+    # trying to register "Ana" must clash with the uniqueness constraint (both are "ana")
     response = client.post("/register", json={"username": "Ana", "password": "other123"})
     assert response.status_code == 400
 
 
 def test_login_short_password_returns_401_not_422(client):
     client.post("/register", json={"username": "ana", "password": "correct123"})
+    # login attempt with a short, wrong password
     response = client.post("/login", json={"username": "ana", "password": "no"})
-    assert response.status_code == 401       # login does not apply the registration length rules
+    assert response.status_code == 401       # not 422: login doesn't apply length rules
 
 # ---------- Authorization ----------
 
@@ -86,6 +111,11 @@ def test_list_items_without_token_returns_401(client):
     response = client.get("/items")
 
     assert response.status_code == 401
+    """
+    Since there's no token, the error happens in the call to the authorization dependency itself, which has a
+    security dependency that fails because there's no 'Authorization' in its headers.
+    (Our custom error isn't raised)
+    """
 
 
 # ---------- Item CRUD ----------
@@ -117,7 +147,7 @@ def test_create_item_strips_whitespace(client):
     headers = register_and_get_headers(client)
     response = client.post("/items", json={"title": "  with spaces  "}, headers=headers)
     assert response.status_code == 201
-    assert response.json()["title"] == "with spaces"
+    assert response.json()["title"] == "with spaces"      # stored without the spaces at the edges
 
 
 def test_list_returns_created_items(client):
@@ -160,6 +190,7 @@ def test_delete_item(client):
     response = client.delete(f"/items/{created['id']}", headers=headers)
 
     assert response.status_code == 204
+    # and it no longer shows up when listing
     assert client.get("/items", headers=headers).json() == []
 
 
@@ -172,14 +203,16 @@ def test_delete_nonexistent_item(client):
     assert "does not exist" in response.json()["detail"].lower()
 
 
-# ---------- User isolation ----------
+# ---------- Security: isolation between users ----------
 
 def test_user_cannot_see_other_users_items(client):
     headers_ana = register_and_get_headers(client, "ana", "12345678")
     headers_bob = register_and_get_headers(client, "bob", "12345678")
 
+    # ana creates an item
     client.post("/items", json={"title": "ana's secret"}, headers=headers_ana)
 
+    # bob lists his own: he must not see anything of ana's
     response = client.get("/items", headers=headers_bob)
 
     assert response.json() == []
@@ -191,9 +224,11 @@ def test_user_cannot_delete_other_users_item(client):
 
     ana_item = client.post("/items", json={"title": "ana's item"}, headers=headers_ana).json()
 
+    # bob tries to delete ana's item
     response = client.delete(f"/items/{ana_item['id']}", headers=headers_bob)
 
     assert response.status_code == 404
     assert "does not exist" in response.json()["detail"].lower()
 
+    # and ana's item is still alive
     assert len(client.get("/items", headers=headers_ana).json()) == 1
