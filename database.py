@@ -1,7 +1,10 @@
+import os
+
 from sqlmodel import SQLModel, create_engine, Session
 
 #Creación de la base de datos
-engine = create_engine("sqlite:///proyecto.db")         # crea o referencia si ya ha sido creada
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///proyecto.db")      # en Docker se apunta a un volumen para que los datos persistan
+engine = create_engine(DATABASE_URL)         # crea o referencia si ya ha sido creada
 
 
 """
