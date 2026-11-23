@@ -17,6 +17,7 @@ REST API built with **FastAPI** and **SQLModel**, featuring user registration, J
 ## Table of contents
 
 - [About](#about)
+- [Branches](#branches)
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Configuration](#configuration)
@@ -30,6 +31,18 @@ REST API built with **FastAPI** and **SQLModel**, featuring user registration, J
 The back-end follows a structured layout designed to serve as a **template** for other projects. The front-end, in contrast, is tailored specifically to display the database content.
 
 Classes are kept to a minimum on purpose: the code relies on formatted URLs, plain arguments and inputs and outputs defined by hand in each endpoint.
+
+## Branches
+
+All branches contain exactly the same code. They only differ in their comments:
+
+| Branch | Comments |
+| --- | --- |
+| `main` | Concise, professional comments |
+| [`commented`](../../tree/commented) | Detailed study notes in English explaining every concept |
+| [`commented-es`](../../tree/commented-es) | The same study notes in Spanish |
+
+Code changes are made on `main` and then merged into the notes branches.
 
 ## Features
 

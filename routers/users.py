@@ -6,61 +6,45 @@ from database import get_session
 from models import User
 from schemas import UserRegister, UserLogin, UserRead
 
-router = APIRouter(tags=["users"])       # tags: agrupa estos endpoints en /docs
-# Sin prefix: /register y /login no comparten raíz de URL.
+router = APIRouter(tags=["users"])
 
-#Ruta /register. Siempre se accede por un método POST, para crear un nuevo usuario.
+
 @router.post("/register", response_model=UserRead)
 def register(data: UserRegister,
              session: Session = Depends(get_session)):
+    """Create a user. Only the password hash is stored."""
 
-    #Comprobar que no exista un usuario con el mismo nombre
     existing = session.exec(
         select(User).where(User.username == data.username)
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="Username already taken")
 
-    #Crear la instancia del usuario
     user = User(
         username = data.username,
-        hashed_password= password_hash.hash(data.password)         #Nunca guardamos la contraseña literal del usuario
+        hashed_password= password_hash.hash(data.password)
     )
 
-    #Actualizar la BBDD
     session.add(user)
     session.commit()
     session.refresh(user)
 
-    return user          # Al haber declarado un response model, únicamente devolverá los campos del usuario que se hayan definido en éste (además de documentación extra en /docs)
+    return user
 
 
-#Ruta /login. Método POST: se crea un token de acceso si los datos de acceso son válidos.
 @router.post("/login")
 def login(data: UserLogin,
-          session: Session = Depends(get_session)):           #los atributos introducidos por el usuario para registrarse y acceder son los mismos
+          session: Session = Depends(get_session)):
+    """Return a JWT access token if the credentials are valid."""
 
-    #Comprobar que existe el usuario que está intentando iniciar sesión, y obtener su contraseña hasheada
     user = session.exec(
         select(User).where(User.username == data.username)
     ).first()
 
-    if not user or not password_hash.verify(data.password, user.hashed_password):        #se lanza el mismo error por ambos motivos, para evitar conteo de usuarios
+    # Same error for an unknown user and a wrong password, to prevent user enumeration.
+    if not user or not password_hash.verify(data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Incorrect username or password")
 
-    """
-    Un token JWT contiene 3 segmentos: cabecera.contenido.firma
-    La cabecera contiene el algoritmo usado.
-    El contenido (payload) consta tanto del usuario (SUBject), como la fecha de EXPiración del token.
-    Estas dos partes son accesibles para cualquiera. NO INCLUIR NUNCA INFORMACION CONFIDENCIAL EN ELLAS. No enviar el username como sub, ya que puede contener datos personales.
-    La firma permite verificar la procedencia del token. El servidor la genera y verifica su validez a partir de la cabecera, el payload y una clave secreta del servidor.
-    El token se lleva su propia prueba encima, entonces el servidor no guarda nada.
-    No hay tabla de sesiones, no hay que consultar la base de datos para saber si un token es legítimo. Escala bien.
-
-    El único riesgo es el posible robo de un token, que permite al ladrón usar el token a su gusto. Por eso se hacen fechas de expiración y se
-    usan tanto ellas como la identidad del usuario para construir la firma; para que si un atacante roba un token, que solo lo pueda usar un tiempo
-    y que no pueda cambiar ni su identidad (a una administrativa) ni alargar su fecha de expiración (ya que la firma cambiaría).
-    """
     token = create_token(user.id)
 
     return {"access_token": token, "token_type": "bearer"}
